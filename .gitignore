@@ -12,20 +12,26 @@ dist
 dist-ssr
 *.local
 
-# Credenciales de Garmin (NUNCA subir)
+# Config local (ruta a tu export de Strava, NUNCA subir)
 .env
 .env.local
 .env.*.local
 !.env.example
 
-# Datos personales descargados de Garmin Connect
+# Datos personales descargados de Strava
 public/data/
 public/data/**
 dist/data/
 dist/data/**
 
-# Tokens de sesión de Garmin (por si se copian al proyecto)
-.garth/
+# Por si descargas/descomprimes el export de Strava dentro del repo
+export_*.zip
+fetch/export_*/
+fetch/*export*/
+
+# Python
+__pycache__/
+*.pyc
 
 # Editor directories and files
 .vscode/*
