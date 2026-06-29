@@ -72,49 +72,99 @@ def _avg_speed_ms(fields: dict) -> float:
     return 0
 
 
+def _csv_num(csv_row: dict, key: str) -> float | None:
+    raw = (csv_row.get(key) or "").strip()
+    if not raw:
+        return None
+    try:
+        return float(raw)
+    except ValueError:
+        return None
+
+
 def normalize_summary(csv_row: dict, fit_session: dict) -> dict:
-    """Builds the lightweight ActivitySummary from one activities.csv row
-    plus the session-level fields of its parsed .fit file (empty dict if the
-    activity has no file, e.g. a manually logged entry — every field then
-    degrades gracefully to None/0)."""
-    sport = _sport_from_fit(fit_session) or _sport_from_csv(csv_row.get("Activity Type"))
+    """Builds the lightweight ActivitySummary, preferring activities.csv's
+    own pre-computed columns (Strava has already aggregated these reliably
+    for every activity, regardless of what the underlying file does or
+    doesn't contain — e.g. real exports show rides with Average Watts in the
+    CSV but no power field at all in the matching .fit session) and falling
+    back to the parsed .fit session only when the CSV value is missing."""
+    activity_type = (csv_row.get("Activity Type") or "").strip()
+    sport = _sport_from_csv(activity_type) if activity_type else (_sport_from_fit(fit_session) or "other")
 
-    avg_speed = _avg_speed_ms(fit_session)  # m/s
-    avg_pace = round(1000 / avg_speed) if avg_speed > 0 else None
+    distance_m = _csv_num(csv_row, "Distance")
+    if distance_m is None:
+        distance_m = fit_session.get("total_distance") or 0
 
-    avg_cadence = None
-    if sport == "running":
+    duration = _csv_num(csv_row, "Elapsed Time")
+    if duration is None:
+        duration = fit_session.get("total_elapsed_time") or 0
+
+    moving_time = _csv_num(csv_row, "Moving Time")
+    if moving_time is None:
+        moving_time = fit_session.get("total_timer_time") or duration
+
+    elevation_gain = _csv_num(csv_row, "Elevation Gain")
+    if elevation_gain is None:
+        elevation_gain = fit_session.get("total_ascent") or 0
+
+    avg_hr = _csv_num(csv_row, "Average Heart Rate")
+    if avg_hr is None:
+        avg_hr = fit_session.get("avg_heart_rate") or 0
+
+    max_hr = _csv_num(csv_row, "Max Heart Rate")
+    if max_hr is None:
+        max_hr = fit_session.get("max_heart_rate") or 0
+
+    calories = _csv_num(csv_row, "Calories")
+    if calories is None:
+        calories = fit_session.get("total_calories")
+
+    avg_speed = _csv_num(csv_row, "Average Speed")  # m/s
+    if avg_speed is None:
+        avg_speed = _avg_speed_ms(fit_session)
+    avg_pace = round(1000 / avg_speed) if avg_speed and avg_speed > 0 else None
+
+    avg_power = _csv_num(csv_row, "Average Watts")
+    if avg_power is None:
+        avg_power = fit_session.get("avg_power")
+
+    normalized_power = _csv_num(csv_row, "Weighted Average Power")
+    if normalized_power is None:
+        normalized_power = fit_session.get("normalized_power")
+
+    raw_cadence = _csv_num(csv_row, "Average Cadence")
+    if raw_cadence is None:
         # Running cadence lives in avg_running_cadence on most Garmin devices
-        # (avg_cadence is the legacy/cycling field); both are per-leg, so x2.
+        # (avg_cadence is the legacy/cycling field).
         raw_cadence = fit_session.get("avg_running_cadence") or fit_session.get("avg_cadence")
-        if raw_cadence:
-            avg_cadence = round(raw_cadence * 2)
-    else:
-        raw_cadence = fit_session.get("avg_cadence")
-        if raw_cadence:
-            avg_cadence = round(raw_cadence)
-
-    calories = fit_session.get("total_calories")
+    avg_cadence = None
+    if raw_cadence:
+        # Both Strava's CSV column and FIT's cadence field are per-leg for
+        # running (Garmin/ANT+ convention); cycling cadence is already full
+        # crank RPM in both sources — confirmed against Total Steps/Moving
+        # Time on real running activities.
+        avg_cadence = round(raw_cadence * 2) if sport == "running" else round(raw_cadence)
 
     summary = {
         "id": int(csv_row["Activity ID"]),
         "title": csv_row.get("Activity Name") or "Untitled",
         "sport": sport,
         "startTime": parse_activity_date(csv_row.get("Activity Date")),
-        "distance": round((fit_session.get("total_distance") or 0) / 1000, 2),  # km
-        "duration": round(fit_session.get("total_elapsed_time") or 0),  # seconds
-        "movingTime": round(fit_session.get("total_timer_time") or fit_session.get("total_elapsed_time") or 0),
-        "elevationGain": round(fit_session.get("total_ascent") or 0),
-        "avgHR": round(fit_session.get("avg_heart_rate") or 0),
-        "maxHR": round(fit_session.get("max_heart_rate") or 0),
+        "distance": round(distance_m / 1000, 2),  # km
+        "duration": round(duration),  # seconds
+        "movingTime": round(moving_time),
+        "elevationGain": round(elevation_gain),
+        "avgHR": round(avg_hr),
+        "maxHR": round(max_hr),
         "calories": round(calories) if calories is not None else None,
-        "tss": None,  # not embedded in FIT; frontend estimates it from HR
+        "tss": None,  # no direct equivalent; frontend estimates it from HR
         "avgPace": avg_pace,  # sec/km, running/swim only
         "avgSpeed": round(avg_speed * 3.6, 1) if avg_speed else None,  # km/h, cycling
-        "avgPower": round(fit_session["avg_power"]) if fit_session.get("avg_power") else None,
-        "normalizedPower": round(fit_session["normalized_power"]) if fit_session.get("normalized_power") else None,
+        "avgPower": round(avg_power) if avg_power else None,
+        "normalizedPower": round(normalized_power) if normalized_power else None,
         "avgCadence": avg_cadence,
-        "vo2max": None,  # rolling fitness metric, not stored per-activity in FIT
+        "vo2max": None,  # rolling fitness metric, not stored per-activity
         "aerobicTE": _round1(fit_session.get("total_training_effect")),
         "anaerobicTE": _round1(fit_session.get("total_anaerobic_training_effect")),
     }

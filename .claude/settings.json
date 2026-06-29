@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(py -3 -c \"import fitparse, dotenv; print\\('fitparse OK:', fitparse.__version__\\); print\\('dotenv OK'\\)\")",
+      "Bash(py -3 fetch/sync.py --export export_57633915.zip --limit 20)",
+      "Bash(py -3 -c ' *)",
+      "Bash(rm -rf public/data)",
+      "Bash(time py -3 fetch/sync.py --export export_57633915.zip)",
+      "Bash(PYTHONIOENCODING=utf-8 py -3 -c ' *)",
+      "Bash(npm --version)"
+    ]
+  }
+}
