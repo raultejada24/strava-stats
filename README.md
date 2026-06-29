@@ -1,4 +1,6 @@
-# Strava Stats
+# Training Dashboard
+
+![Captura del dashboard](public/image.png)
 
 Panel personal para ver tus estadísticas de entrenamiento de Strava: actividades, mapas, zonas de FC, fitness (CTL/ATL/TSB), récords y más.
 
@@ -32,13 +34,13 @@ También necesitas una **cuenta de Strava** con tus actividades subidas (por eje
 
 ### 1. Descargar el proyecto
 
-Si ya tienes la carpeta `strava-stats` en tu ordenador, ábrela en la terminal:
+Si ya tienes la carpeta `training-dashboard` en tu ordenador, ábrela en la terminal:
 
 ```bash
-cd ruta/donde/está/strava-stats
+cd ruta/donde/está/training-dashboard
 ```
 
-(Sustituye `ruta/donde/está/strava-stats` por la ruta real, por ejemplo `/Users/tu-usuario/Documents/strava-stats`.)
+(Sustituye `ruta/donde/está/training-dashboard` por la ruta real, por ejemplo `/Users/tu-usuario/Documents/training-dashboard`.)
 
 ---
 
@@ -78,7 +80,7 @@ cd ..
 
 ### 4. Procesar tu export de Strava
 
-Desde la carpeta raíz del proyecto (`strava-stats`), una vez tengas el `.zip` descargado (paso 2):
+Desde la carpeta raíz del proyecto (`training-dashboard`), una vez tengas el `.zip` descargado (paso 2):
 
 ```bash
 python3 fetch/sync.py --export /ruta/a/export_12345678.zip --limit 20
@@ -223,7 +225,7 @@ Cierra otras ventanas de terminal donde tengas `npm run dev` corriendo, o Vite t
 ## Estructura del proyecto (referencia)
 
 ```
-strava-stats/
+training-dashboard/
 ├── .env                 ← Ruta a tu export (opcional, no compartir)
 ├── fetch/
 │   ├── sync.py          ← Script que procesa tu export de Strava
