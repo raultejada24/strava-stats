@@ -8,6 +8,7 @@ import { useSportVolume } from '../hooks/useSportVolume'
 import { useTrainingStreak } from '../hooks/useTrainingStreak'
 import { useZoneDistribution } from '../hooks/useZoneDistribution'
 import { useWeeklyLoad } from '../hooks/useWeeklyLoad'
+import { useWeeklyStats } from '../hooks/useWeeklyStats'
 import FormBadge from '../components/FormBadge'
 import DeltaBadge from '../components/DeltaBadge'
 import InfoTooltip from '../components/InfoTooltip'
@@ -56,6 +57,7 @@ export default function Dashboard() {
   const streak = useTrainingStreak()
   const { slices: zoneSlices, isAerobicFocused } = useZoneDistribution(30)
   const weeklyLoad = useWeeklyLoad(16)
+  const weeklyStats = useWeeklyStats(8)
 
   if (loading) return <LoadingScreen />
   if (error || activities.length === 0) return <EmptyScreen />
@@ -303,6 +305,64 @@ export default function Dashboard() {
             </span>
           </div>
         </div>
+
+        {/* ── Weekly stats table (Intervals.icu style) ─────────────────────── */}
+        {weeklyStats.length > 0 && (
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-zinc-800 flex items-center justify-between">
+              <SectionLabel>Resumen por semana</SectionLabel>
+              <span className="text-[10px] text-zinc-600">Aptitud = CTL · Fatiga = ATL · Forma = TSB</span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-zinc-800">
+                    {['Sem', 'Tiempo', 'km', 'kcal', 'Desnivel', 'TSS', 'Aptitud', 'Fatiga', 'Forma', 'Rampa'].map(h => (
+                      <th key={h} className="text-left text-[10px] text-zinc-600 font-medium px-4 py-2.5 whitespace-nowrap">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {weeklyStats.map((w, i) => {
+                    const isCurrentWeek = i === 0
+                    const tsbColor = w.tsb == null ? '#52525b'
+                      : w.tsb > 5 ? '#4ade80' : w.tsb > -5 ? '#60a5fa'
+                      : w.tsb > -15 ? '#fbbf24' : w.tsb > -25 ? '#fb923c' : '#f87171'
+                    const rampColor = w.rampRate == null ? '#52525b'
+                      : w.rampRate >= 0 ? '#4ade80' : Math.abs(w.rampRate) < 2 ? '#60a5fa' : '#fb923c'
+                    return (
+                      <tr key={`${w.year}-${w.week}`}
+                        className={`border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-colors ${isCurrentWeek ? 'bg-zinc-800/20' : ''}`}
+                      >
+                        <td className="px-4 py-2.5 whitespace-nowrap">
+                          <span className={`font-semibold ${isCurrentWeek ? 'text-indigo-400' : 'text-zinc-400'}`}>S{w.week}</span>
+                          <div className="text-[10px] text-zinc-700">{w.year}</div>
+                        </td>
+                        <td className="px-4 py-2.5 font-mono text-zinc-300 whitespace-nowrap">{formatDuration(w.totalDuration)}</td>
+                        <td className="px-4 py-2.5 font-mono text-zinc-300 whitespace-nowrap">{w.totalDistance > 0 ? w.totalDistance.toFixed(0) : '—'}</td>
+                        <td className="px-4 py-2.5 font-mono text-zinc-400 whitespace-nowrap">{w.totalKcal > 0 ? w.totalKcal.toLocaleString('es') : '—'}</td>
+                        <td className="px-4 py-2.5 font-mono text-zinc-400 whitespace-nowrap">{w.totalElevation > 0 ? `${w.totalElevation.toLocaleString('es')}m` : '—'}</td>
+                        <td className="px-4 py-2.5 font-mono text-zinc-300 font-medium whitespace-nowrap">{w.totalTSS > 0 ? w.totalTSS : '—'}</td>
+                        <td className="px-4 py-2.5 whitespace-nowrap">
+                          {w.ctl != null ? <span className="font-mono font-semibold" style={{ color: '#818cf8' }}>{Math.round(w.ctl)}</span> : <span className="text-zinc-700">—</span>}
+                        </td>
+                        <td className="px-4 py-2.5 whitespace-nowrap">
+                          {w.atl != null ? <span className="font-mono font-semibold" style={{ color: '#fb923c' }}>{Math.round(w.atl)}</span> : <span className="text-zinc-700">—</span>}
+                        </td>
+                        <td className="px-4 py-2.5 whitespace-nowrap">
+                          {w.tsb != null ? <span className="font-mono font-semibold" style={{ color: tsbColor }}>{w.tsb > 0 ? '+' : ''}{Math.round(w.tsb)}</span> : <span className="text-zinc-700">—</span>}
+                        </td>
+                        <td className="px-4 py-2.5 whitespace-nowrap">
+                          {w.rampRate != null ? <span className="font-mono" style={{ color: rampColor }}>{w.rampRate > 0 ? '+' : ''}{w.rampRate.toFixed(1)}</span> : <span className="text-zinc-700">—</span>}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {/* ── Recent activities ────────────────────────────────────────────── */}
         <section>

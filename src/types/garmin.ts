@@ -1,4 +1,4 @@
-export type Sport = 'running' | 'cycling' | 'swimming' | 'other'
+export type Sport = 'running' | 'cycling' | 'swimming' | 'strength' | 'other'
 
 export interface HRZone {
   zone: number

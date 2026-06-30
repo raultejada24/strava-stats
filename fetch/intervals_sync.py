@@ -62,11 +62,24 @@ DATA_DIR   = Path(__file__).parent.parent / "public" / "data"
 
 # Mapeo tipo Intervals.icu → sport interno
 ICU_SPORT_MAP: dict[str, str] = {
+    # Running
     "Run": "running", "TrailRun": "running", "VirtualRun": "running",
+    "Hike": "running", "Walk": "running", "NordicSki": "running",
+    # Cycling
     "Ride": "cycling", "MountainBikeRide": "cycling", "GravelRide": "cycling",
     "VirtualRide": "cycling", "EBikeRide": "cycling", "EMountainBikeRide": "cycling",
-    "Handcycle": "cycling", "Velomobile": "cycling",
+    "Handcycle": "cycling", "Velomobile": "cycling", "Rowing": "cycling",
+    # Swimming
     "Swim": "swimming", "OpenWaterSwim": "swimming",
+    # Strength / other
+    "WeightTraining": "strength", "Workout": "strength", "Yoga": "strength",
+    "Pilates": "strength", "CrossFit": "strength", "RockClimbing": "strength",
+    "Elliptical": "strength", "StairStepper": "strength",
+}
+
+SPORT_LABELS: dict[str, str] = {
+    "running": "Carrera", "cycling": "Ciclismo",
+    "swimming": "Natación", "strength": "Fuerza", "other": "Actividad",
 }
 
 SUMMARY_KEYS = [
@@ -117,6 +130,17 @@ def save_json(path: Path, data) -> None:
 
 def _sport(act: dict) -> str:
     return ICU_SPORT_MAP.get(act.get("type", ""), "other")
+
+
+def _activity_title(act: dict, sport: str) -> str:
+    name = (act.get("name") or "").strip()
+    if name:
+        return name
+    # Generate a meaningful fallback from sport + time of day
+    start = act.get("start_date_local", "")
+    hour = int(start[11:13]) if len(start) > 12 else 12
+    period = "matutino" if 5 <= hour < 12 else "vespertino" if 12 <= hour < 19 else "nocturno"
+    return f"{SPORT_LABELS.get(sport, 'Actividad')} {period}"
 
 
 def _round1(v) -> float | None:
@@ -174,7 +198,7 @@ def normalize_summary(act: dict) -> dict:
 
     return {
         "id": act_id,
-        "title": act.get("name") or "Sin nombre",
+        "title": _activity_title(act, sport),
         "sport": sport,
         "startTime": start_time,
         "distance": round(distance_m / 1000, 2),
@@ -254,6 +278,96 @@ def fetch_activity_detail(icu_id: str) -> dict | None:
 def fetch_wellness(oldest: str, newest: str) -> list[dict]:
     data = icu_get(f"/athlete/{ATHLETE_ID}/wellness", oldest=oldest, newest=newest)
     return data if isinstance(data, list) else []
+
+
+# ─── Weekly aggregation ───────────────────────────────────────────────────────
+
+def generate_weekly(summaries: list[dict], fitness_history: list[dict]) -> list[dict]:
+    """Aggregate per-activity data into ISO week summaries with CTL/ATL/TSB."""
+    from datetime import date as dt_date
+
+    fitness_by_date = {f["date"]: f for f in fitness_history}
+
+    weeks: dict[tuple, dict] = {}
+    for s in summaries:
+        start = s.get("startTime", "")
+        if not start:
+            continue
+        try:
+            d = datetime.fromisoformat(start[:10]).date()
+        except ValueError:
+            continue
+        iso = d.isocalendar()
+        key = (iso[0], iso[1])
+
+        if key not in weeks:
+            monday = dt_date.fromisocalendar(iso[0], iso[1], 1)
+            sunday = monday + timedelta(days=6)
+            weeks[key] = {
+                "year": iso[0],
+                "week": iso[1],
+                "dateStart": str(monday),
+                "dateEnd": str(sunday),
+                "totalDuration": 0,
+                "totalKcal": 0,
+                "totalElevation": 0,
+                "totalTSS": 0.0,
+                "totalDistance": 0.0,
+                "activityCount": 0,
+                "bySport": {},
+            }
+
+        w = weeks[key]
+        w["totalDuration"]  += int(s.get("duration", 0) or 0)
+        w["totalKcal"]      += int(s.get("calories", 0) or 0)
+        w["totalElevation"] += int(s.get("elevationGain", 0) or 0)
+        w["totalTSS"]       += float(s.get("tss", 0) or 0)
+        w["totalDistance"]  += float(s.get("distance", 0) or 0)
+        w["activityCount"]  += 1
+
+        sport = s.get("sport", "other")
+        if sport not in w["bySport"]:
+            w["bySport"][sport] = {"count": 0, "distance": 0.0, "duration": 0, "tss": 0.0}
+        bs = w["bySport"][sport]
+        bs["count"]    += 1
+        bs["distance"] += float(s.get("distance", 0) or 0)
+        bs["duration"] += int(s.get("duration", 0) or 0)
+        bs["tss"]      += float(s.get("tss", 0) or 0)
+
+    result = []
+    prev_ctl: float | None = None
+
+    for key in sorted(weeks.keys()):
+        w = weeks[key]
+        sunday = w["dateEnd"]
+
+        # Find CTL/ATL/TSB for end of week (try Sunday → Saturday → ...)
+        fitness = fitness_by_date.get(sunday)
+        if not fitness:
+            for delta in range(1, 8):
+                fallback = str(datetime.fromisoformat(sunday) - timedelta(days=delta))[:10]
+                if fallback in fitness_by_date:
+                    fitness = fitness_by_date[fallback]
+                    break
+
+        ctl = float(fitness["ctl"]) if fitness and fitness.get("ctl") is not None else None
+        atl = float(fitness["atl"]) if fitness and fitness.get("atl") is not None else None
+        tsb = float(fitness["tsb"]) if fitness and fitness.get("tsb") is not None else None
+
+        ramp = round(ctl - prev_ctl, 1) if ctl is not None and prev_ctl is not None else None
+        if ctl is not None:
+            prev_ctl = ctl
+
+        w["ctl"]           = round(ctl, 1) if ctl is not None else None
+        w["atl"]           = round(atl, 1) if atl is not None else None
+        w["tsb"]           = round(tsb, 1) if tsb is not None else None
+        w["rampRate"]      = ramp
+        w["totalTSS"]      = round(w["totalTSS"])
+        w["totalDistance"] = round(w["totalDistance"], 1)
+        result.append(w)
+
+    result.sort(key=lambda x: (x["year"], x["week"]), reverse=True)
+    return result
 
 
 # ─── Main ─────────────────────────────────────────────────────────────────────
@@ -365,7 +479,13 @@ def main():
     save_json(DATA_DIR / "wellness.json", wellness_out)
     print(f"wellness.json → VO2Max: {wellness_out['latestVo2max']} · {len(fitness_history)} días de fitness")
 
-    # 5. Save stats.json
+    # 5. Weekly aggregation
+    print("\nGenerando resumen semanal...")
+    weekly = generate_weekly(summaries, fitness_history)
+    save_json(DATA_DIR / "weekly.json", weekly)
+    print(f"weekly.json → {len(weekly)} semanas")
+
+    # 6. Save stats.json
     by_sport: dict[str, int] = {}
     for s in summaries:
         sp = s.get("sport", "other")

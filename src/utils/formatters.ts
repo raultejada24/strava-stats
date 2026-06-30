@@ -54,6 +54,7 @@ export function sportLabel(sport: Sport): string {
     running: 'Running',
     cycling: 'Ciclismo',
     swimming: 'Natación',
+    strength: 'Fuerza',
     other: 'Otro',
   }
   return labels[sport] ?? sport
@@ -64,6 +65,7 @@ export function sportIcon(sport: Sport): string {
     running: '🏃',
     cycling: '🚴',
     swimming: '🏊',
+    strength: '🏋️',
     other: '⚡',
   }
   return icons[sport] ?? '⚡'
@@ -74,6 +76,7 @@ export function sportColor(sport: Sport): string {
     running: '#4ade80',
     cycling: '#60a5fa',
     swimming: '#22d3ee',
+    strength: '#f59e0b',
     other: '#c084fc',
   }
   return colors[sport] ?? '#71717a'

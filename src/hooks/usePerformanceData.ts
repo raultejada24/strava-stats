@@ -52,7 +52,7 @@ export function useAerobicEfficiency(): { data: AerobicEFPoint[]; trendPct: numb
 
 // ─── Triathlon Balance ────────────────────────────────────────────────────────
 
-const IDEAL_PCT: Record<Sport, number> = { running: 35, cycling: 50, swimming: 15, other: 0 }
+const IDEAL_PCT: Record<Sport, number> = { running: 35, cycling: 50, swimming: 15, strength: 0, other: 0 }
 
 export interface SportBalanceRow {
   sport: string
@@ -156,7 +156,7 @@ export function useConsistencyHeatmap(windowDays = 28): HeatmapData {
     const days: Record<string, Record<Sport, number>> = {}
     for (let i = windowDays - 1; i >= 0; i--) {
       const key = isoDateOffset(i)
-      days[key] = { running: 0, cycling: 0, swimming: 0, other: 0 }
+      days[key] = { running: 0, cycling: 0, swimming: 0, strength: 0, other: 0 }
     }
 
     for (const a of activities) {

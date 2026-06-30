@@ -13,7 +13,13 @@
       "Bash(xxd .claude/settings.json)",
       "Bash(git check-ignore *)",
       "Bash(echo \"exit: $?\")",
-      "Read(//c/Users/rault/.claude/projects/c--Users-rault-Desktop-VsCode-strava-stats/memory/**)"
+      "Read(//c/Users/rault/.claude/projects/c--Users-rault-Desktop-VsCode-strava-stats/memory/**)",
+      "Bash(python fetch/intervals_sync.py --limit 5)",
+      "Bash(python3 fetch/intervals_sync.py --limit 5)",
+      "Read(//c/Users/rault/AppData/Local/Programs/**)",
+      "Read(//c/Users/rault/AppData/Local/Programs/Python/**)",
+      "PowerShell($py = \"C:\\\\Users\\\\rault\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe\"; & $py --version; cd \"c:\\\\Users\\\\rault\\\\Desktop\\\\VsCode\\\\strava-stats\"; & $py fetch/intervals_sync.py --limit 5 2>&1)",
+      "PowerShell($py = \"C:\\\\Users\\\\rault\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe\"; cd \"c:\\\\Users\\\\rault\\\\Desktop\\\\VsCode\\\\strava-stats\"; & $py fetch/intervals_sync.py --since 2026-06-01 2>&1)"
     ],
     "additionalDirectories": [
       "c:\\Users\\rault\\.claude\\projects\\c--Users-rault-Desktop-VsCode-strava-stats\\memory"

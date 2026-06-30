@@ -42,41 +42,35 @@ Intervals.icu se sincroniza con tu Strava automáticamente y tiene API gratuita.
 
 ### 3. Obtener tu API key y athlete ID
 
-Necesitas dos datos de tu cuenta de Intervals.icu:
+Ambos datos están en el mismo sitio: **Settings → Configuración de desarrollador**.
 
-#### Athlete ID
+**Cómo llegar:**
 
-Está visible en la **URL** cuando abres Intervals.icu:
+1. Abre [intervals.icu](https://intervals.icu) e inicia sesión.
+2. Haz clic en tu nombre o foto de perfil (arriba a la derecha) → **Ajustes**.
+3. Baja hasta el final de la página. La última sección se llama **"Configuración de desarrollador"**.
+
+Ahí encontrarás:
 
 ```
-https://intervals.icu/athlete/i123456
-                                ^^^^^^
-                          Este es tu athlete ID
+Configuración de desarrollador
+──────────────────────────────
+ID del atleta    i318521        ← esto es INTERVALS_ATHLETE_ID
+Clave API        (view)         ← haz clic en (view) para copiarla → INTERVALS_API_KEY
 ```
 
-Por ejemplo: `i57633915`, `i12345`, etc. Siempre empieza por `i`.
-
-#### API Key
-
-1. En Intervals.icu, haz clic en tu foto de perfil (esquina superior derecha) → **Settings**.
-2. Desplázate hasta el final de la página hasta la sección **"API Access"**.
-3. Copia el valor del campo **"API Key"**.
+- El **ID del atleta** empieza siempre por `i` (ej: `i318521`).
+- La **Clave API** aparece oculta — haz clic en `(view)` para verla y copiarla.
 
 ---
 
 ### 4. Configurar el .env
 
-Copia el fichero de ejemplo y rellénalo con tus datos:
-
-```bash
-cp .env.example .env
-```
-
-Abre `.env` y sustituye los valores:
+Abre el fichero `.env` que ya existe en la raíz del proyecto y rellena los dos valores:
 
 ```env
-INTERVALS_ATHLETE_ID=i123456          ← tu athlete ID (de la URL)
-INTERVALS_API_KEY=tu_api_key_aqui     ← tu API key (Settings → API Access)
+INTERVALS_ATHLETE_ID=i318521           ← tu ID del atleta
+INTERVALS_API_KEY=tu_clave_aqui        ← la clave que copiaste de (view)
 ```
 
 > El fichero `.env` nunca se sube a GitHub (ya está en `.gitignore`). Es solo tuyo.
