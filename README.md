@@ -2,121 +2,85 @@
 
 ![Captura del dashboard](public/image.png)
 
-Panel personal para ver tus estadísticas de entrenamiento: actividades, zonas de FC, fitness (CTL/ATL/TSB), VO2Max, récords y más.
+Panel personal para ver tus estadísticas de entrenamiento: actividades con mapa GPS, zonas de FC, fitness (CTL/ATL/TSB), récords, análisis de rendimiento y más.
 
-Los datos se sincronizan desde **Intervals.icu** (gratis, conecta con Strava automáticamente) y se guardan en JSON locales. No hay servidor en la nube ni base de datos.
+Los datos se leen desde el **export gratuito de Strava** — sin suscripción, sin API de pago. La app corre entera en local: no hay servidor, no hay base de datos.
 
 ---
 
 ## Qué necesitas
 
-| Programa | Versión | Comprobar |
-|----------|---------|-----------|
-| **Node.js** | v18 o superior | `node --version` |
-| **Python** | v3.10 o superior | `python --version` |
-| **Cuenta de Intervals.icu** | gratuita | [intervals.icu](https://intervals.icu) |
+| Programa | Versión mínima | Comprobar |
+|----------|----------------|-----------|
+| **Node.js** | v18 | `node --version` |
+| **Python** | v3.10 | `python --version` |
 
-> **Node.js:** [nodejs.org](https://nodejs.org) → descarga LTS.  
-> **Python:** [python.org/downloads](https://python.org/downloads) → en Mac/Linux suele venir instalado.
+> **¿No los tienes?** Node.js: [nodejs.org](https://nodejs.org) → LTS. Python: [python.org/downloads](https://python.org/downloads).
 
 ---
 
 ## Guía rápida
 
-### 1. Descargar el proyecto
+### 1. Pedir el export de Strava
+
+Strava te deja descargar todo tu historial gratis, sin API ni contraseñas:
+
+1. Abre Strava en el navegador → haz clic en tu foto de perfil → **Ajustes**.
+2. En el menú lateral, entra en **"Mi cuenta"** → **"Descargar o eliminar tu cuenta"**.
+3. Pulsa **"Obtener archivo"** → confirma con tu contraseña → **"Solicitar mis archivos"**.
+4. Recibirás un email de Strava (puede tardar desde minutos hasta unas horas).
+5. Descarga el `.zip` y guárdalo en la carpeta del proyecto.
+
+El ZIP contiene un `activities.csv` con todos tus entrenamientos más los archivos `.fit` / `.gpx` con los tracks GPS.
+
+---
+
+### 2. Instalar dependencias de Python
 
 ```bash
-cd ruta/donde/está/training-dashboard
+pip install -r fetch/requirements.txt
 ```
+
+Solo hace falta la primera vez.
 
 ---
 
-### 2. Conectar Intervals.icu con Strava
+### 3. Configurar el .env
 
-Intervals.icu se sincroniza con tu Strava automáticamente y tiene API gratuita. Una vez conectado, no necesitas descargar ningún ZIP.
-
-1. Ve a [intervals.icu](https://intervals.icu) y crea una cuenta gratuita.
-2. En el panel de Intervals.icu, haz clic en **"Connect Strava"** (aparece en el onboarding o en Settings → Connections). Tus actividades se importarán solas.
-
----
-
-### 3. Obtener tu API key y athlete ID
-
-Ambos datos están en el mismo sitio: **Settings → Configuración de desarrollador**.
-
-**Cómo llegar:**
-
-1. Abre [intervals.icu](https://intervals.icu) e inicia sesión.
-2. Haz clic en tu nombre o foto de perfil (arriba a la derecha) → **Ajustes**.
-3. Baja hasta el final de la página. La última sección se llama **"Configuración de desarrollador"**.
-
-Ahí encontrarás:
-
-```
-Configuración de desarrollador
-──────────────────────────────
-ID del atleta    i318521        ← esto es INTERVALS_ATHLETE_ID
-Clave API        (view)         ← haz clic en (view) para copiarla → INTERVALS_API_KEY
-```
-
-- El **ID del atleta** empieza siempre por `i` (ej: `i318521`).
-- La **Clave API** aparece oculta — haz clic en `(view)` para verla y copiarla.
-
----
-
-### 4. Configurar el .env
-
-Abre el fichero `.env` que ya existe en la raíz del proyecto y rellena los dos valores:
+Abre el fichero `.env` en la raíz del proyecto y pon la ruta a tu ZIP:
 
 ```env
-INTERVALS_ATHLETE_ID=i318521           ← tu ID del atleta
-INTERVALS_API_KEY=tu_clave_aqui        ← la clave que copiaste de (view)
+STRAVA_EXPORT_PATH=./export_57633915.zip
 ```
 
-> El fichero `.env` nunca se sube a GitHub (ya está en `.gitignore`). Es solo tuyo.
+Cambia `export_57633915.zip` por el nombre real de tu archivo.
 
 ---
 
-### 5. Instalar dependencias de Python
+### 4. Procesar el export
 
 ```bash
-cd fetch
-pip install -r requirements.txt
-cd ..
+python fetch/sync.py
+```
+
+El script lee el ZIP, parsea los archivos `.fit` / `.gpx` y genera los JSON en `public/data/`. Las actividades ya procesadas se guardan en caché, así que las ejecuciones siguientes son rápidas.
+
+**Opciones útiles:**
+
+```bash
+# Solo las últimas 50 (para prueba rápida)
+python fetch/sync.py --limit 50
+
+# Solo actividades desde una fecha
+python fetch/sync.py --since 2024-01-01
+
+# Sin tracks GPS (más rápido, no hay mapa de ruta)
+python fetch/sync.py --no-gpx
 ```
 
 ---
 
-### 6. Sincronizar los datos
-
-```bash
-python fetch/intervals_sync.py
-```
-
-La primera vez descarga todas las actividades del último año. Para pruebas rápidas:
-
-```bash
-python fetch/intervals_sync.py --limit 30
-```
-
-**Opciones disponibles:**
-
-```bash
-# Solo actividades desde una fecha concreta
-python fetch/intervals_sync.py --since 2024-01-01
-
-# Las 50 más recientes
-python fetch/intervals_sync.py --limit 50
-
-# Sin descargar laps (más rápido)
-python fetch/intervals_sync.py --no-laps
-```
-
-> El script guarda cada actividad en `public/data/`. La segunda vez que lo ejecutes, las actividades que ya existan se saltan automáticamente (caché).
-
----
-
-### 7. Instalar dependencias de la app
+### 5. Instalar dependencias de la app
 
 ```bash
 npm install
@@ -126,84 +90,63 @@ Solo hace falta la primera vez.
 
 ---
 
-### 8. Abrir la app
+### 6. Abrir la app
 
 ```bash
 npm run dev
 ```
 
-Abre [http://localhost:5173](http://localhost:5173) en el navegador.
+Abre [http://localhost:5173](http://localhost:5173).
+
+> **Auto-sync:** cada vez que arranques `npm run dev`, el servidor procesa automáticamente en segundo plano las actividades nuevas que haya en el ZIP pero no estén aún en caché. No hace falta ejecutar `sync.py` manualmente.
 
 ---
 
-## Actualizar con nuevos entrenamientos
+## Actualizar con nuevas actividades
 
-Cada vez que hagas nuevas actividades en Strava (Intervals.icu las importa automáticamente), ejecuta:
+Cuando tengas nuevos entrenamientos que añadir:
 
-```bash
-python fetch/intervals_sync.py --since 2024-01-01
-```
-
-O sin `--since` para descargar todo lo que falte. Las actividades ya procesadas no se vuelven a descargar.
+1. Pide un nuevo export de Strava (paso 1) y descarga el ZIP.
+2. Sustituye el ZIP antiguo por el nuevo (o cambia `STRAVA_EXPORT_PATH` en `.env`).
+3. Ejecuta `python fetch/sync.py` — solo procesará las actividades nuevas.
 
 ---
 
 ## Ajustes de la app
 
-En la barra lateral, entra en **Ajustes** para configurar:
+En la barra lateral → **Ajustes** puedes configurar:
 
-- **FC Máxima** — para el cálculo de zonas Z1-Z5
-- **FTP** (ciclismo) — para el cálculo de TSS e IF
-- **FC y ritmo en umbral** (running) — para TSS de running
+| Ajuste | Para qué sirve |
+|--------|----------------|
+| **FC Máxima** | Cálculo de zonas Z1–Z5 |
+| **FTP** (ciclismo) | TSS e Intensity Factor en ciclismo |
+| **FC y ritmo umbral** (running) | TSS de running |
 
-Se guardan en tu navegador y afectan retroactivamente a todos los cálculos.
+Los ajustes se guardan en tu navegador y afectan retroactivamente a todos los cálculos de zonas y TSS.
 
 ---
 
 ## Tooltips de métricas
 
-Cada métrica del dashboard tiene un pequeño botón `i` al lado. Haz clic para ver:
-- Qué mide exactamente esa métrica
-- Cómo se calcula (fórmula)
+Cada métrica tiene un pequeño botón `i` al lado. Haz clic para ver:
+
+- Qué mide exactamente
+- Fórmula de cálculo
 - Rangos de referencia
 
 ---
 
-## Qué datos proporciona Intervals.icu
+## Qué datos tiene la app
 
-| Dato | Disponible |
-|------|-----------|
-| Nombre, deporte, fecha | ✓ |
-| Distancia, duración, elevación | ✓ |
-| FC media y máxima | ✓ |
-| Potencia media y normalizada | ✓ (si tienes potenciómetro) |
-| Cadencia | ✓ |
-| Calorías | ✓ |
-| **TSS real** (calculado por Intervals.icu) | ✓ |
-| **VO2Max** estimado | ✓ |
-| Training Effect aeróbico/anaeróbico | ✓ (si usas Garmin) |
-| Historial CTL/ATL/TSB | ✓ |
-| **Track GPS / mapa** | ✗ (ver nota) |
-
-> **Nota sobre GPS:** Intervals.icu no almacena los tracks GPS. Si necesitas los mapas de ruta, usa el export de Strava (ZIP) con `fetch/sync.py`. Los dos scripts son compatibles — puedes usar `intervals_sync.py` para las métricas y `sync.py` para enriquecer el GPS.
-
----
-
-## Estructura del proyecto
-
-```
-training-dashboard/
-├── .env                        ← Tus credenciales (NO subir a GitHub)
-├── fetch/
-│   ├── intervals_sync.py       ← Sync principal desde Intervals.icu
-│   ├── sync.py                 ← Sync alternativo desde export ZIP de Strava
-│   ├── normalizer.py           ← Mapeo de datos al formato de la app
-│   ├── fit_reader.py           ← Parseo de archivos .fit / .gpx
-│   └── requirements.txt        ← Dependencias Python
-├── public/
-│   └── data/                   ← Datos JSON (NO subir a GitHub)
-└── src/                        ← Código de la app (React + TypeScript)
-```
+| Sección | Qué muestra |
+|---------|-------------|
+| **Dashboard** | VO2Max, CTL/ATL/TSB, racha, volumen por deporte, resumen semanal, zonas FC, últimas actividades |
+| **Actividades** | Lista completa con filtros por deporte y búsqueda |
+| **Detalle** | Mapa GPS, laps, gráfico de FC, métricas completas |
+| **Análisis Fitness** | Evolución CTL/ATL/TSB en el tiempo |
+| **Zonas FC** | Distribución de tiempo por zona (Z1–Z5) |
+| **Récords** | Mejores marcas por deporte y distancia |
+| **Rendimiento** | Eficiencia aeróbica, cadencia, tendencia VO2Max, carga semanal, consistencia |
 
 ---
 
@@ -213,36 +156,37 @@ Estos ficheros contienen datos personales y **no se suben a GitHub** (ya están 
 
 | Fichero | Contenido |
 |---------|-----------|
-| `.env` | Tus credenciales de Intervals.icu |
-| `public/data/` | Actividades procesadas, GPS, FC, etc. |
-| `export_*.zip` | El export bruto de Strava (si lo usas) |
-
-Antes de hacer `git push`, comprueba con `git status` que no aparezca ninguno de estos ficheros.
+| `.env` | Ruta al export (sin credenciales) |
+| `public/data/` | Actividades procesadas, GPS, FC |
+| `export_*.zip` | El export bruto de Strava |
 
 ---
 
-## Comandos útiles
+## Comandos de referencia
 
-| Comando | Descripción |
-|---------|-------------|
-| `npm run dev` | Inicia la app en modo desarrollo |
-| `npm run build` | Genera versión optimizada en `dist/` |
-| `npm run lint` | Revisa el código |
-| `python fetch/intervals_sync.py` | Sincroniza datos de Intervals.icu |
-| `python fetch/sync.py --export export.zip` | Sincroniza desde export ZIP de Strava |
+```bash
+npm run dev          # Inicia la app (+ sync automático en segundo plano)
+npm run build        # Genera versión optimizada en dist/
+npm run lint         # Revisa el código
+
+python fetch/sync.py                        # Procesa el export completo
+python fetch/sync.py --limit 50             # Solo las 50 más recientes
+python fetch/sync.py --since 2024-01-01     # Desde una fecha
+python fetch/sync.py --no-gpx               # Sin GPS (más rápido)
+```
 
 ---
 
 ## Problemas frecuentes
 
-### "ERROR: Faltan INTERVALS_ATHLETE_ID o INTERVALS_API_KEY en el .env"
-Revisa el paso 3 y 4. Asegúrate de que el fichero se llama `.env` (con el punto) y no `.env.example`.
+**"ERROR: Pass --export ... or set STRAVA_EXPORT_PATH"**
+→ Abre `.env` y asegúrate de que `STRAVA_EXPORT_PATH` apunta al ZIP correcto.
 
-### "ERROR: API key inválida o athlete ID incorrecto"
-Comprueba que el athlete ID empieza por `i` (ej: `i57633915`) y que la API key es exactamente la que aparece en Settings → API Access.
+**"ERROR: export.zip does not exist"**
+→ La ruta del ZIP no es correcta. Usa ruta absoluta si la relativa no funciona.
 
-### La app muestra "Sin datos"
-Ejecuta primero `python fetch/intervals_sync.py`. Los datos deben estar en `public/data/` antes de abrir la app.
+**La app muestra "Sin datos"**
+→ Ejecuta `python fetch/sync.py` antes de abrir la app. Los JSON deben estar en `public/data/`.
 
-### Puerto 5173 ya en uso
-Cierra otras ventanas donde tengas `npm run dev` abierto, o Vite usará automáticamente el siguiente puerto disponible.
+**Puerto 5173 ya en uso**
+→ Cierra otras terminales con `npm run dev` activo, o Vite usará el siguiente puerto libre automáticamente.

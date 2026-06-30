@@ -187,9 +187,12 @@ def main():
         detail_path = output_dir / f"activity_{activity_id}.json"
 
         if detail_path.exists():
-            cached = json.loads(detail_path.read_text(encoding="utf-8"))
-            summaries.append({k: cached.get(k) for k in SUMMARY_KEYS if k in cached})
-            continue
+            try:
+                cached = json.loads(detail_path.read_text(encoding="utf-8"))
+                summaries.append({k: cached.get(k) for k in SUMMARY_KEYS if k in cached})
+                continue
+            except (json.JSONDecodeError, OSError):
+                detail_path.unlink(missing_ok=True)  # corrupted → reparse
 
         print(f"  [{i+1}/{len(rows)}] Parsing {activity_id} ({row.get('Activity Name', '')})...")
         try:
@@ -202,10 +205,69 @@ def main():
     save_json(output_dir / "activities.json", summaries)
     print(f"\nSaved {len(summaries)} activities → public/data/activities.json")
 
+    weekly = compute_weekly(summaries)
+    save_json(output_dir / "weekly.json", weekly)
+    print(f"Saved weekly stats → public/data/weekly.json ({len(weekly)} weeks)")
+
     stats = compute_stats(summaries)
     save_json(output_dir / "stats.json", stats)
     print("Saved stats → public/data/stats.json")
     print("Run 'npm run dev' to open the app.")
+
+
+def compute_weekly(summaries: list) -> list:
+    """Aggregate per-activity data into ISO week summaries."""
+    from datetime import date as dt_date, timedelta
+
+    weeks: dict[tuple, dict] = {}
+    for s in summaries:
+        start = s.get("startTime", "")
+        if not start:
+            continue
+        try:
+            d = datetime.fromisoformat(start[:10]).date()
+        except ValueError:
+            continue
+        iso = d.isocalendar()
+        key = (iso[0], iso[1])
+
+        if key not in weeks:
+            monday = dt_date.fromisocalendar(iso[0], iso[1], 1)
+            sunday = monday + timedelta(days=6)
+            weeks[key] = {
+                "year": iso[0], "week": iso[1],
+                "dateStart": str(monday), "dateEnd": str(sunday),
+                "totalDuration": 0, "totalKcal": 0,
+                "totalElevation": 0, "totalTSS": 0.0,
+                "totalDistance": 0.0, "activityCount": 0,
+                "ctl": None, "atl": None, "tsb": None, "rampRate": None,
+                "bySport": {},
+            }
+
+        w = weeks[key]
+        w["totalDuration"]  += int(s.get("duration", 0) or 0)
+        w["totalKcal"]      += int(s.get("calories", 0) or 0)
+        w["totalElevation"] += int(s.get("elevationGain", 0) or 0)
+        w["totalTSS"]       += float(s.get("tss", 0) or 0)
+        w["totalDistance"]  += float(s.get("distance", 0) or 0)
+        w["activityCount"]  += 1
+
+        sport = s.get("sport", "other")
+        if sport not in w["bySport"]:
+            w["bySport"][sport] = {"count": 0, "distance": 0.0, "duration": 0, "tss": 0.0}
+        bs = w["bySport"][sport]
+        bs["count"]    += 1
+        bs["distance"] += float(s.get("distance", 0) or 0)
+        bs["duration"] += int(s.get("duration", 0) or 0)
+        bs["tss"]      += float(s.get("tss", 0) or 0)
+
+    result = []
+    for key in sorted(weeks.keys(), reverse=True):
+        w = weeks[key]
+        w["totalTSS"]      = round(w["totalTSS"])
+        w["totalDistance"] = round(w["totalDistance"], 1)
+        result.append(w)
+    return result
 
 
 def compute_stats(summaries: list) -> dict:

@@ -32,11 +32,15 @@ function EmptyScreen() {
     <div className="flex-1 p-8 max-w-lg">
       <div className="border border-zinc-800 rounded-xl p-6">
         <h2 className="text-zinc-100 font-semibold text-base mb-2">Sin datos</h2>
-        <p className="text-zinc-500 text-sm mb-4">Procesa tu export de Strava para empezar.</p>
+        <p className="text-zinc-500 text-sm mb-4">
+          Procesa tu export de Strava para empezar. El export lo pides en{' '}
+          <span className="text-zinc-300">Strava → Ajustes → Descargar o eliminar tu cuenta</span>.
+        </p>
         <div className="bg-zinc-900 rounded-lg p-4 font-mono text-xs text-zinc-400 space-y-1">
-          <div>cp .env.example .env</div>
-          <div>cd fetch && pip install -r requirements.txt</div>
-          <div>python sync.py --export export_*.zip</div>
+          <div><span className="text-zinc-600"># 1. Instala dependencias (solo la primera vez)</span></div>
+          <div>pip install -r fetch/requirements.txt</div>
+          <div className="pt-1"><span className="text-zinc-600"># 2. Procesa el export</span></div>
+          <div>python fetch/sync.py --export export_*.zip</div>
         </div>
       </div>
     </div>
