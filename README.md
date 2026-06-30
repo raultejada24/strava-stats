@@ -1,4 +1,4 @@
-# Training Dashboard
+# Training Dashboard with Strava Zip
 
 ![Captura del dashboard](public/image.png)
 
