@@ -1,64 +1,70 @@
 import { Link } from 'react-router-dom'
 import type { ActivitySummary } from '../types/garmin'
-import { formatPace, formatDuration, formatDistance, formatRelativeTime, sportLabel, sportColor, sportIcon } from '../utils/formatters'
+import { formatPace, formatDuration, formatDistance, formatRelativeTime, sportIcon, sportColor } from '../utils/formatters'
 
 interface Props {
   activity: ActivitySummary
   compact?: boolean
 }
 
-export default function ActivityCard({ activity: a, compact }: Props) {
+export default function ActivityCard({ activity: a }: Props) {
   const color = sportColor(a.sport)
 
   return (
     <Link
       to={`/activity/${a.id}`}
-      className="block bg-slate-800/60 border border-slate-700/50 rounded-xl p-4 hover:border-slate-500/70 hover:bg-slate-800 transition-colors"
+      className="flex items-center gap-4 px-4 py-3.5 rounded-xl border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-900 hover:border-zinc-700 transition-all group"
     >
-      {/* Header row */}
-      <div className="flex items-center gap-2 mb-2">
-        <span className="text-xl">{sportIcon(a.sport)}</span>
-        <div className="flex-1 min-w-0">
-          <div className="text-sm font-medium text-slate-200 truncate">{a.title}</div>
-          <div className="text-xs text-slate-500">{formatRelativeTime(a.startTime)} · {sportLabel(a.sport)}</div>
-        </div>
-        {a.aerobicTE != null && (
-          <div className="text-xs px-2 py-0.5 rounded-full border" style={{ color, borderColor: color + '40', background: color + '15' }}>
-            TE {a.aerobicTE.toFixed(1)}
-          </div>
+      {/* Sport icon + color dot */}
+      <div className="shrink-0 flex items-center gap-2.5">
+        <div className="w-1.5 h-8 rounded-full" style={{ background: color }} />
+        <span className="text-lg leading-none">{sportIcon(a.sport)}</span>
+      </div>
+
+      {/* Title + date */}
+      <div className="min-w-0 flex-1">
+        <div className="text-sm font-semibold text-zinc-100 truncate group-hover:text-white">{a.title}</div>
+        <div className="text-xs text-zinc-500 mt-0.5">{formatRelativeTime(a.startTime)}</div>
+      </div>
+
+      {/* Metrics */}
+      <div className="flex items-center gap-5 shrink-0 text-right">
+        {a.distance > 0 && (
+          <Metric
+            top={`${formatDistance(a.distance, a.sport)}`}
+            bottom={
+              a.avgPace ? formatPace(a.avgPace)
+              : a.avgSpeed ? `${a.avgSpeed} km/h`
+              : ''
+            }
+          />
         )}
+        <Metric
+          top={formatDuration(a.duration)}
+          bottom={a.avgHR > 0 ? `${a.avgHR} bpm` : ''}
+        />
+        {a.tss != null ? (
+          <div className="w-10 text-right">
+            <div className="text-sm font-bold tabular-nums" style={{ color }}>{Math.round(a.tss)}</div>
+            <div className="text-[10px] text-zinc-600">TSS</div>
+          </div>
+        ) : a.aerobicTE != null ? (
+          <div className="w-10 text-right">
+            <div className="text-sm font-bold tabular-nums" style={{ color }}>{a.aerobicTE.toFixed(1)}</div>
+            <div className="text-[10px] text-zinc-600">TE</div>
+          </div>
+        ) : null}
+        <div className="text-zinc-700 group-hover:text-zinc-500 text-xs transition-colors">→</div>
       </div>
-
-      {/* Main metrics */}
-      <div className="grid grid-cols-3 gap-2 mt-3">
-        <Metric label="Distancia" value={formatDistance(a.distance, a.sport)} />
-        <Metric label="Duración" value={formatDuration(a.duration)} />
-        {a.sport === 'running' && a.avgPace
-          ? <Metric label="Ritmo" value={formatPace(a.avgPace)} />
-          : a.sport === 'cycling' && a.avgSpeed
-          ? <Metric label="Velocidad" value={`${a.avgSpeed} km/h`} />
-          : a.sport === 'swimming' && a.swolf
-          ? <Metric label="SWOLF" value={String(Math.round(a.swolf))} />
-          : <Metric label="FC Media" value={a.avgHR > 0 ? `${a.avgHR} bpm` : '–'} />
-        }
-      </div>
-
-      {!compact && (
-        <div className="grid grid-cols-3 gap-2 mt-2">
-          <Metric label="FC Media" value={a.avgHR > 0 ? `${a.avgHR} bpm` : '–'} />
-          <Metric label="Elevación" value={`${a.elevationGain} m`} />
-          <Metric label="TSS" value={a.tss != null ? String(Math.round(a.tss)) : '–'} />
-        </div>
-      )}
     </Link>
   )
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function Metric({ top, bottom }: { top: string; bottom: string }) {
   return (
-    <div>
-      <div className="text-xs text-slate-500">{label}</div>
-      <div className="text-sm font-medium text-slate-200">{value}</div>
+    <div className="text-right">
+      <div className="text-sm font-semibold tabular-nums text-zinc-200">{top}</div>
+      {bottom && <div className="text-xs text-zinc-500 mt-0.5">{bottom}</div>}
     </div>
   )
 }

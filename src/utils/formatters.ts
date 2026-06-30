@@ -71,10 +71,10 @@ export function sportIcon(sport: Sport): string {
 
 export function sportColor(sport: Sport): string {
   const colors: Record<Sport, string> = {
-    running: '#ef4444',
-    cycling: '#f97316',
-    swimming: '#3b82f6',
-    other: '#8b5cf6',
+    running: '#4ade80',
+    cycling: '#60a5fa',
+    swimming: '#22d3ee',
+    other: '#c084fc',
   }
-  return colors[sport] ?? '#6b7280'
+  return colors[sport] ?? '#71717a'
 }

@@ -1,34 +1,31 @@
 @import "tailwindcss";
 
 @theme {
-  --color-garmin-blue: #0079c1;
-  --color-garmin-dark: #003d6b;
-  --color-run: #ef4444;
-  --color-ride: #f97316;
-  --color-swim: #3b82f6;
-  --color-other: #8b5cf6;
-
-  --color-zone1: #22c55e;
-  --color-zone2: #84cc16;
-  --color-zone3: #eab308;
-  --color-zone4: #f97316;
-  --color-zone5: #ef4444;
+  --color-run:   #4ade80;
+  --color-ride:  #60a5fa;
+  --color-swim:  #22d3ee;
+  --color-other: #c084fc;
+  --color-ctl:   #818cf8;
+  --color-atl:   #fb923c;
+  --color-vo2:   #a78bfa;
 }
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
+
+html { color-scheme: dark; }
 
 body {
   margin: 0;
-  background: #0f172a;
-  color: #e2e8f0;
-  font-family: system-ui, -apple-system, sans-serif;
+  background: #09090b;
+  color: #f4f4f5;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
 }
 
-/* Leaflet overrides */
-.leaflet-container {
-  background: #1e293b;
-  border-radius: 0.5rem;
-}
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #52525b; }
+
+.leaflet-container { background: #18181b; border-radius: 0.5rem; }

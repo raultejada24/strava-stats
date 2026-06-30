@@ -12,7 +12,11 @@
       "Bash(xxd)",
       "Bash(xxd .claude/settings.json)",
       "Bash(git check-ignore *)",
-      "Bash(echo \"exit: $?\")"
+      "Bash(echo \"exit: $?\")",
+      "Read(//c/Users/rault/.claude/projects/c--Users-rault-Desktop-VsCode-strava-stats/memory/**)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\rault\\.claude\\projects\\c--Users-rault-Desktop-VsCode-strava-stats\\memory"
     ]
   }
 }
