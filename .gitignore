@@ -29,6 +29,9 @@ export_*.zip
 fetch/export_*/
 fetch/*export*/
 
+# Claude Code session files
+.claude/
+
 # Python
 __pycache__/
 *.pyc
